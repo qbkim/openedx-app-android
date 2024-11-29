@@ -46,6 +46,7 @@ class InDevelopmentFragment : Fragment() {
                 ) {
                     Text(
                         modifier = Modifier.testTag("txt_in_development"),
+                        color = MaterialTheme.appColors.background,
                         text = "Will be available soon",
                         style = MaterialTheme.appTypography.headlineMedium
                     )

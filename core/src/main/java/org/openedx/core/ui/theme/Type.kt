@@ -32,15 +32,15 @@ data class AppTypography(
 )
 
 val fontFamily = FontFamily(
-    Font(R.font.regular, FontWeight.Black, FontStyle.Normal),
-    Font(R.font.bold, FontWeight.Bold, FontStyle.Normal),
-    Font(R.font.bold, FontWeight.Bold, FontStyle.Normal),
-    Font(R.font.extra_light, FontWeight.Light, FontStyle.Normal),
-    Font(R.font.light, FontWeight.Light, FontStyle.Normal),
-    Font(R.font.medium, FontWeight.Medium, FontStyle.Normal),
-    Font(R.font.regular, FontWeight.Normal, FontStyle.Normal),
-    Font(R.font.semi_bold, FontWeight.Bold, FontStyle.Normal),
-    Font(R.font.thin, FontWeight.Thin, FontStyle.Normal),
+    Font(R.font.ops_regular, FontWeight.Black, FontStyle.Normal),
+    Font(R.font.ops_bold, FontWeight.Bold, FontStyle.Normal),
+    Font(R.font.ops_bold, FontWeight.Bold, FontStyle.Normal),
+    Font(R.font.ops_light, FontWeight.Light, FontStyle.Normal),
+    Font(R.font.ops_light, FontWeight.Light, FontStyle.Normal),
+    Font(R.font.ops_medium, FontWeight.Medium, FontStyle.Normal),
+    Font(R.font.ops_regular, FontWeight.Normal, FontStyle.Normal),
+    Font(R.font.ops_semibold, FontWeight.Bold, FontStyle.Normal),
+    Font(R.font.ops_light, FontWeight.Thin, FontStyle.Normal),
 )
 
 
