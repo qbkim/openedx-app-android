@@ -29,10 +29,10 @@ android {
             dimension 'env'
         }
     }
-
+    //TODO minifyEnabled needs to be set to false to build release
     buildTypes {
         release {
-            minifyEnabled true
+            minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
