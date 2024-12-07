@@ -1,10 +1,10 @@
-API_HOST_URL: 'http://localhost:8000'
-APPLICATION_ID: 'org.openedx.app'
-ENVIRONMENT_DISPLAY_NAME: 'Localhost'
+API_HOST_URL: 'https://axph.org'
+APPLICATION_ID: 'org.axph.app'
+ENVIRONMENT_DISPLAY_NAME: 'testing'
 URI_SCHEME: ''
-FEEDBACK_EMAIL_ADDRESS: 'support@example.com'
+FEEDBACK_EMAIL_ADDRESS: 'contact@axph.org'
 FAQ_URL: ''
-OAUTH_CLIENT_ID: 'OAUTH_CLIENT_ID'
+OAUTH_CLIENT_ID: 'oVIpaThmAvdnwAMf4H00v5xhd3QdkOGKl5MUSQdX'
 
 # Keep empty to hide setting
 AGREEMENT_URLS:
@@ -50,10 +50,10 @@ GOOGLE:
   CLIENT_ID: ''
 
 MICROSOFT:
-  ENABLED: false
-  CLIENT_ID: ''
-  PACKAGE_SIGNATURE: ''
-
+  ENABLED: true
+  CLIENT_ID: '985ad670-b2e9-4fc7-8e56-8ca460c01dec'
+  PACKAGE_SIGNATURE: '4ywLIg0bSVb0kZJ2ZDfwbP32stU='
+ #keytool -exportcert -alias KEYALLIAS -keystore PATH_TO_KEYSTORE | openssl sha1 -binary | openssl base64
 FACEBOOK:
   ENABLED: false
   FACEBOOK_APP_ID: ''
@@ -74,7 +74,7 @@ TOKEN_TYPE: "JWT"
 #feature flag for activating What’s New feature
 WHATS_NEW_ENABLED: false
 #feature flag enable Social Login buttons
-SOCIAL_AUTH_ENABLED: false
+SOCIAL_AUTH_ENABLED: true
 #Course navigation feature flags
 COURSE_NESTED_LIST_ENABLED: false
 COURSE_UNIT_PROGRESS_ENABLED: false
