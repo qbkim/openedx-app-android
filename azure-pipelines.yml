@@ -18,15 +18,13 @@ steps:
       sudo mkdir -p /usr/local/android-sdk/cmdline-tools
       sudo unzip -q android-sdk.zip -d /usr/local/android-sdk/cmdline-tools
       sudo mv /usr/local/android-sdk/cmdline-tools/cmdline-tools /usr/local/android-sdk/cmdline-tools/latest
-      echo "export ANDROID_HOME=/usr/local/android-sdk" >> $HOME/.bashrc
-      echo "export PATH=\$ANDROID_HOME/cmdline-tools/latest/bin:\$PATH" >> $HOME/.bashrc
-      echo "export PATH=\$ANDROID_HOME/platform-tools:\$PATH" >> $HOME/.bashrc
-      source $HOME/.bashrc
-    displayName: 'Install Android SDK & Tools'
-
-  - script: |
-      sdkmanager --sdk_root=/usr/local/android-sdk --install "platforms;android-33" "build-tools;33.0.0"
-    displayName: 'Install Android SDK Components'
+      export ANDROID_HOME=/usr/local/android-sdk
+      export PATH=$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH
+      echo "ANDROID_HOME=$ANDROID_HOME" | sudo tee -a /etc/environment
+      echo "PATH=$PATH" | sudo tee -a /etc/environment
+      yes | sdkmanager --licenses
+      sdkmanager --sdk_root=$ANDROID_HOME --install "platforms;android-33" "build-tools;33.0.0"
+    displayName: 'Install Android SDK & Components'
 
   - task: Gradle@3
     inputs:
