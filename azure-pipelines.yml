@@ -7,8 +7,9 @@ pool:
 steps:
   - task: JavaToolInstaller@0
     inputs:
-      versionSpec: '17'  # Set to the required Java version
-      jdkArchitecture: 'x64'
+      versionSpec: '17'  # Set the required Java version
+      jdkArchitectureOption: 'x64'  # Specify the architecture
+      jdkSourceOption: 'PreInstalled'  # Use pre-installed JDK on the agent
 
   - script: |
       yes | sdkmanager --install "platforms;android-33" "build-tools;33.0.0"
