@@ -5,12 +5,13 @@ pool:
   vmImage: 'ubuntu-latest'
 
 steps:
-  - task: UseJavaVersion@1
+  - task: JavaToolInstaller@0
     inputs:
-      version: '17'  # Use the Java version required by your project
-      architecture: 'x64'
+      versionSpec: '17'  # Set to the required Java version
+      jdkArchitecture: 'x64'
 
-  - script: sdkmanager --install "platforms;android-33" "build-tools;33.0.0"
+  - script: |
+      yes | sdkmanager --install "platforms;android-33" "build-tools;33.0.0"
     displayName: 'Install Android SDK'
 
   - task: Gradle@3
