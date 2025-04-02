@@ -5,6 +5,14 @@ pool:
   vmImage: 'ubuntu-latest'
 
 steps:
+  - task: UseJavaVersion@1
+    inputs:
+      version: '17'  # Use the Java version required by your project
+      architecture: 'x64'
+
+  - script: sdkmanager --install "platforms;android-33" "build-tools;33.0.0"
+    displayName: 'Install Android SDK'
+
   - task: Gradle@3
     inputs:
       gradleWrapperFile: 'gradlew'
@@ -12,3 +20,8 @@ steps:
       options: '--stacktrace --info'
       publishJUnitResults: true
       testResultsFiles: '**/TEST-*.xml'
+
+  - script: |
+      export ORG_GRADLE_JVM_ARGS="-Xmx3072m"
+      ./gradlew build --stacktrace --info
+    displayName: 'Run Gradle Build'
