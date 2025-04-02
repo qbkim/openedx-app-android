@@ -1,5 +1,5 @@
 trigger:
-  - main  # Adjust the branch as needed
+  - main  
 
 pool:
   vmImage: 'ubuntu-latest'
@@ -7,13 +7,26 @@ pool:
 steps:
   - task: JavaToolInstaller@0
     inputs:
-      versionSpec: '17'  # Set the required Java version
-      jdkArchitectureOption: 'x64'  # Specify the architecture
-      jdkSourceOption: 'PreInstalled'  # Use pre-installed JDK on the agent
+      versionSpec: '17'
+      jdkArchitectureOption: 'x64'
+      jdkSourceOption: 'PreInstalled'
 
   - script: |
-      yes | sdkmanager --install "platforms;android-33" "build-tools;33.0.0"
-    displayName: 'Install Android SDK'
+      sudo apt-get update
+      sudo apt-get install -y unzip wget
+      wget https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip -O android-sdk.zip
+      sudo mkdir -p /usr/local/android-sdk/cmdline-tools
+      sudo unzip -q android-sdk.zip -d /usr/local/android-sdk/cmdline-tools
+      sudo mv /usr/local/android-sdk/cmdline-tools/cmdline-tools /usr/local/android-sdk/cmdline-tools/latest
+      echo "export ANDROID_HOME=/usr/local/android-sdk" >> $HOME/.bashrc
+      echo "export PATH=\$ANDROID_HOME/cmdline-tools/latest/bin:\$PATH" >> $HOME/.bashrc
+      echo "export PATH=\$ANDROID_HOME/platform-tools:\$PATH" >> $HOME/.bashrc
+      source $HOME/.bashrc
+    displayName: 'Install Android SDK & Tools'
+
+  - script: |
+      sdkmanager --sdk_root=/usr/local/android-sdk --install "platforms;android-33" "build-tools;33.0.0"
+    displayName: 'Install Android SDK Components'
 
   - task: Gradle@3
     inputs:
