@@ -1,40 +1,45 @@
 trigger:
-  - main  
+  - main  # or your default branch
 
 pool:
   vmImage: 'ubuntu-latest'
 
+variables:
+  ANDROID_HOME: $(Agent.ToolsDirectory)/AndroidSDK
+
 steps:
-  - task: JavaToolInstaller@0
-    inputs:
-      versionSpec: '17'
-      jdkArchitectureOption: 'x64'
-      jdkSourceOption: 'PreInstalled'
+# ✅ Set up Java 17
+- task: JavaToolInstaller@0
+  inputs:
+    versionSpec: '17'
+    jdkArchitecture: 'x64'
 
-  - script: |
-      sudo apt-get update
-      sudo apt-get install -y unzip wget
-      wget https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip -O android-sdk.zip
-      sudo mkdir -p /usr/local/android-sdk/cmdline-tools
-      sudo unzip -q android-sdk.zip -d /usr/local/android-sdk/cmdline-tools
-      sudo mv /usr/local/android-sdk/cmdline-tools/cmdline-tools /usr/local/android-sdk/cmdline-tools/latest
-      export ANDROID_HOME=/usr/local/android-sdk
-      export PATH=$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH
-      echo "ANDROID_HOME=$ANDROID_HOME" | sudo tee -a /etc/environment
-      echo "PATH=$PATH" | sudo tee -a /etc/environment
-      yes | sdkmanager --licenses --sdk_root=$ANDROID_HOME
-      sdkmanager --sdk_root=$ANDROID_HOME --install "platforms;android-33" "build-tools;33.0.0" --no_https
-    displayName: 'Fast Install Android SDK'
+# ✅ Download and set up Android SDK
+- script: |
+    mkdir -p $ANDROID_HOME/cmdline-tools
+    curl -sSL https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip -o cmdline-tools.zip
+    unzip -q cmdline-tools.zip -d $ANDROID_HOME/cmdline-tools
+    mv $ANDROID_HOME/cmdline-tools/cmdline-tools $ANDROID_HOME/cmdline-tools/latest
+  displayName: 'Download Android SDK'
 
-  - task: Gradle@3
-    inputs:
-      gradleWrapperFile: 'gradlew'
-      tasks: 'build'
-      options: '--stacktrace --info'
-      publishJUnitResults: true
-      testResultsFiles: '**/TEST-*.xml'
+# ✅ Install required Android packages
+- script: |
+    yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --sdk_root=$ANDROID_HOME \
+      "platforms;android-33" \
+      "build-tools;33.0.0" \
+      "platform-tools"
+  displayName: 'Install Android SDK Packages'
 
-  - script: |
-      export ORG_GRADLE_JVM_ARGS="-Xmx3072m"
-      ./gradlew build --stacktrace --info
-    displayName: 'Run Gradle Build'
+# ✅ Accept SDK licenses
+- script: |
+    yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses
+  displayName: 'Accept Android Licenses'
+
+# ✅ Gradle Build
+- task: Gradle@3
+  inputs:
+    gradleWrapperFile: 'gradlew'
+    tasks: 'assembleDebug'
+    options: '--stacktrace --info'
+    publishJUnitResults: true
+    testResultsFiles: '**/TEST-*.xml'
