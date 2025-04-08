@@ -41,6 +41,6 @@ steps:
   inputs:
     gradleWrapperFile: 'gradlew'
     tasks: 'assembleDebug'
-    options: '--info --stacktrace --debug'  # <-- added --debug
+    options: '--console=plain --stacktrace'
     publishJUnitResults: true
     testResultsFiles: '**/TEST-*.xml'
