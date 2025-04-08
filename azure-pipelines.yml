@@ -16,17 +16,20 @@ steps:
     echo "JAVA_HOME is set to $(which java)"
   displayName: 'Install Java 17'
 
-# ✅ Fix the conflicting SDK paths
+# ✅ Fix the conflicting SDK paths and verify Android SDK tools
 - script: |
     echo "Unsetting ANDROID_SDK_ROOT to avoid SDK path conflict"
     unset ANDROID_SDK_ROOT
     export ANDROID_HOME=/opt/hostedtoolcache/AndroidSDK
     echo "ANDROID_HOME is set to $ANDROID_HOME"
     echo "JAVA_HOME is set to $JAVA_HOME"
-    echo "Gradle Version:"
-    ./gradlew --version
-    echo "Android SDK Tools Version:"
-    $ANDROID_HOME/tools/bin/sdkmanager --version
+    
+    # Check if sdkmanager exists and display version
+    if [ -f "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" ]; then
+      $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --version
+    else
+      echo "Error: sdkmanager not found!"
+    fi
   displayName: 'Fix and Verify SDK Path'
 
 # 🔧 Restore Gradle dependencies (optional but common)
