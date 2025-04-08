@@ -8,42 +8,47 @@ variables:
   buildDir: '$(Build.SourcesDirectory)'
 
 steps:
-# 🛠️ Install Java 17
+# 🛠️ Install Java 11 manually (if needed)
 - script: |
     sudo apt-get update
-    sudo apt-get install -y openjdk-17-jdk
-    sudo update-alternatives --set java /usr/lib/jvm/java-17-openjdk-amd64/bin/java
-    export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
-    echo "JAVA_HOME=$JAVA_HOME" >> $GITHUB_ENV
+    sudo apt-get install -y openjdk-11-jdk
     java -version
-    javac -version
-  displayName: 'Install and Set Java 17'
+    export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
+    echo "JAVA_HOME is now set to $JAVA_HOME"
+  displayName: 'Install Java 11'
 
-# 🔄 Verify Java version for Gradle
+# ✅ Fix the conflicting SDK paths and verify Android SDK tools
 - script: |
-    echo "Checking Java version for Gradle..."
-    ./gradlew --version
-  workingDirectory: $(buildDir)
-  displayName: 'Verify Gradle Java Version'
-
-# ✅ Fix Android SDK paths
-- script: |
-    echo "Setting Android SDK environment..."
+    echo "Unsetting ANDROID_SDK_ROOT to avoid SDK path conflict"
     unset ANDROID_SDK_ROOT
     export ANDROID_HOME=/opt/hostedtoolcache/AndroidSDK
-    echo "ANDROID_HOME=$ANDROID_HOME" >> $GITHUB_ENV
+    echo "ANDROID_HOME is set to $ANDROID_HOME"
+    echo "JAVA_HOME is set to $JAVA_HOME"
     
-    # Verify SDK tools
-    $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --list || true
-  displayName: 'Configure Android SDK'
+    # Check if sdkmanager exists and display version
+    if [ -f "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" ]; then
+      $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --version
+    else
+      echo "Error: sdkmanager not found!"
+    fi
+  displayName: 'Fix and Verify SDK Path'
 
-# 🔧 Build with debug info
+# 🔧 Check Environment Variables (for debugging)
+- script: |
+    echo "JAVA_HOME is set to $JAVA_HOME"
+    echo "ANDROID_HOME is set to $ANDROID_HOME"
+  displayName: 'Check Environment Variables'
+
+# 🔧 Restore Gradle dependencies (optional but common)
+- script: ./gradlew dependencies
+  workingDirectory: $(buildDir)
+  displayName: 'Restore Gradle Dependencies'
+
+# 🛠️ Build the Android app with Java 11
 - task: Gradle@3
   inputs:
     gradleWrapperFile: '$(buildDir)/gradlew'
     workingDirectory: '$(buildDir)'
-    options: '--stacktrace --debug'
+    options: '--console=plain --stacktrace --info --refresh-dependencies'
     tasks: 'assembleDebug'
-    javaHomeOption: 'Path'
-    jdkDirectory: '/usr/lib/jvm/java-17-openjdk-amd64'
-  displayName: 'Build with Gradle'
+  displayName: 'Build Android App'
