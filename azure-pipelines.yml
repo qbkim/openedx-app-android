@@ -8,20 +8,29 @@ variables:
   buildDir: '$(Build.SourcesDirectory)'
 
 steps:
-- task: Checkout@1
+- task: UseJava@1
+  inputs:
+    versionSpec: '17'
+    jdkArchitecture: 'x64'
 
+# ✅ Fix the conflicting SDK paths
 - script: |
-    echo "Fixing Android SDK path..."
+    echo "Unsetting ANDROID_SDK_ROOT to avoid SDK path conflict"
     unset ANDROID_SDK_ROOT
     export ANDROID_HOME=/opt/hostedtoolcache/AndroidSDK
-  displayName: 'Fix Android SDK Path'
+    echo "ANDROID_HOME is set to $ANDROID_HOME"
+  displayName: 'Fix Android SDK path'
 
+# 🔧 Restore Gradle dependencies (optional but common)
+- script: ./gradlew dependencies
+  workingDirectory: $(buildDir)
+  displayName: 'Gradle Dependencies'
+
+# 🛠️ Build the Android app
 - task: Gradle@3
   inputs:
     gradleWrapperFile: '$(buildDir)/gradlew'
     workingDirectory: '$(buildDir)'
     options: '--console=plain --stacktrace'
     tasks: 'assembleDebug'
-    publishJUnitResults: true
-    testResultsFiles: '**/TEST-*.xml'
-  displayName: 'Build with Gradle'
+  displayName: 'Gradle Build'
