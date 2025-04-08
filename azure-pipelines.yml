@@ -8,12 +8,14 @@ variables:
   buildDir: '$(Build.SourcesDirectory)'
 
 steps:
-# 🛠️ Install Java 17 manually (since UseJava task is missing)
+# 🛠️ Install Java 17 manually
 - script: |
     sudo apt-get update
     sudo apt-get install -y openjdk-17-jdk
     java -version
     echo "JAVA_HOME is set to $(which java)"
+    export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+    echo "JAVA_HOME is now set to $JAVA_HOME"
   displayName: 'Install Java 17'
 
 # ✅ Fix the conflicting SDK paths and verify Android SDK tools
@@ -37,7 +39,7 @@ steps:
   workingDirectory: $(buildDir)
   displayName: 'Restore Gradle Dependencies'
 
-# 🛠️ Build the Android app
+# 🛠️ Build the Android app with Java 17
 - task: Gradle@3
   inputs:
     gradleWrapperFile: '$(buildDir)/gradlew'
