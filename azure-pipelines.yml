@@ -1,46 +1,27 @@
 trigger:
-  - main
+- main
 
 pool:
   vmImage: 'ubuntu-latest'
 
 variables:
-  ANDROID_HOME: $(Agent.ToolsDirectory)/AndroidSDK
+  buildDir: '$(Build.SourcesDirectory)'
 
 steps:
-# ✅ Install Java 17
-- task: JavaToolInstaller@0
-  inputs:
-    versionSpec: '17'
-    jdkArchitectureOption: 'x64'
-    jdkSourceOption: 'PreInstalled'
+- task: Checkout@1
 
-# ✅ Download Android SDK command line tools
 - script: |
-    mkdir -p $ANDROID_HOME/cmdline-tools
-    curl -sSL https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip -o cmdline-tools.zip
-    unzip -q cmdline-tools.zip -d $ANDROID_HOME/cmdline-tools
-    mv $ANDROID_HOME/cmdline-tools/cmdline-tools $ANDROID_HOME/cmdline-tools/latest
-  displayName: 'Download Android SDK Command Line Tools'
+    echo "Fixing Android SDK path..."
+    unset ANDROID_SDK_ROOT
+    export ANDROID_HOME=/opt/hostedtoolcache/AndroidSDK
+  displayName: 'Fix Android SDK Path'
 
-# ✅ Install required Android packages
-- script: |
-    yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --sdk_root=$ANDROID_HOME \
-      "platforms;android-33" \
-      "build-tools;33.0.0" \
-      "platform-tools"
-  displayName: 'Install Android SDK Packages'
-
-# ✅ Accept Android SDK licenses
-- script: |
-    yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses
-  displayName: 'Accept Android Licenses'
-
-# ✅ Build using Gradle
 - task: Gradle@3
   inputs:
-    gradleWrapperFile: 'gradlew'
-    tasks: 'assembleDebug'
+    gradleWrapperFile: '$(buildDir)/gradlew'
+    workingDirectory: '$(buildDir)'
     options: '--console=plain --stacktrace'
+    tasks: 'assembleDebug'
     publishJUnitResults: true
     testResultsFiles: '**/TEST-*.xml'
+  displayName: 'Build with Gradle'
