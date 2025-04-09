@@ -40,29 +40,3 @@ steps:
     fi
     echo "Config file exists"
   displayName: 'Check Config File'
-
-# 5. Run Gradle build
-- task: Gradle@3
-  inputs:
-    gradleWrapperFile: '$(buildDir)/gradlew'
-    workingDirectory: '$(buildDir)'
-    options: '--stacktrace --no-daemon --info'
-    tasks: 'clean assembleDebug'
-    javaHomeOption: 'Path'
-    jdkDirectory: '/usr/lib/jvm/java-17-openjdk-amd64'
-  displayName: 'Run Gradle Build'
-
-# 6. Enhanced failure analysis
-- script: |
-    echo "=== BUILD FAILURE ANALYSIS ==="
-    # Check for common build files
-    find $(buildDir)/app/build -name "*.log" -exec tail -n 50 {} \; || true
-    
-    # Get basic Gradle information
-    ./gradlew --version || true
-    
-    # Check Android components
-    ./gradlew androidDependencies || true
-  workingDirectory: $(buildDir)
-  condition: failed()
-  displayName: 'Diagnose Failure'
