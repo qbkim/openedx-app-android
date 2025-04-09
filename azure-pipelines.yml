@@ -6,39 +6,80 @@ pool:
 
 variables:
   buildDir: '$(Build.SourcesDirectory)'
-  GRADLE_OPTS: '-Dorg.gradle.jvmargs=-Xmx4096m'
+  GRADLE_OPTS: '-Dorg.gradle.jvmargs=-Xmx4096m -XX:MaxMetaspaceSize=1024m'
   ANDROID_SDK_ROOT: '/usr/local/lib/android/sdk'
 
 steps:
-# 1. Clean environment
+# 1. Enhanced environment cleaning
 - script: |
-    sudo rm -rf /usr/lib/jvm || true
-    sudo rm -rf ~/.gradle/caches || true
-  displayName: '🧹 Clean Environment'
+    echo "=== Deep Cleaning Environment ==="
+    sudo rm -rf /usr/lib/jvm/*
+    sudo rm -rf ~/.gradle/caches/*
+    sudo rm -rf ~/.android/cache/*
+    rm -rf $(buildDir)/.gradle
+    rm -rf $(buildDir)/build
+  displayName: '🧹 Deep Clean Environment'
 
-# 2. Install Java 17
+# 2. Robust Java 17 installation
 - script: |
-    sudo apt-get update
-    sudo apt-get install -y openjdk-17-jdk
+    echo "=== Installing Java 17 ==="
+    sudo apt-get update -y
+    sudo apt-get install -y --no-install-recommends openjdk-17-jdk
     sudo update-alternatives --set java /usr/lib/jvm/java-17-openjdk-amd64/bin/java
+    sudo update-alternatives --set javac /usr/lib/jvm/java-17-openjdk-amd64/bin/javac
     export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
     echo "##vso[task.setvariable variable=JAVA_HOME]$JAVA_HOME"
-    java -version
+    echo "Java version: $(java -version 2>&1 | head -n 1)"
+    echo "Javac version: $(javac -version 2>&1)"
   displayName: '☕ Install Java 17'
 
-# 3. Correct Android SDK setup
+# 3. Reliable Android SDK setup
 - script: |
-    echo "Android SDK Path: $ANDROID_SDK_ROOT"
-    ls -la $ANDROID_SDK_ROOT
+    echo "=== Setting Up Android SDK ==="
+    export ANDROID_HOME=$ANDROID_SDK_ROOT
+    echo "##vso[task.setvariable variable=ANDROID_HOME]$ANDROID_HOME"
     
-    # Accept licenses
-    yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --licenses
+    # Verify cmdline-tools exist
+    if [ ! -f "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" ]; then
+      echo "Warning: cmdline-tools not found at standard location"
+      ls -la $ANDROID_HOME
+    fi
     
-    # Install required platforms and build tools
-    $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager "platforms;android-34" "build-tools;34.0.0" "platform-tools"
+    # Accept licenses with timeout
+    timeout 60 yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
     
-    # Verify installation
-    $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --list
+    # Install essential components
+    $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager \
+      "platforms;android-34" \
+      "build-tools;34.0.0" \
+      "platform-tools" \
+      "cmake;3.22.1"
+    
+    echo "=== Installed Packages ==="
+    $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --list
   displayName: '🤖 Setup Android SDK'
   env:
     ANDROID_SDK_ROOT: $(ANDROID_SDK_ROOT)
+
+# 4. Gradle build with enhanced diagnostics
+- task: Gradle@3
+  inputs:
+    gradleWrapperFile: '$(buildDir)/gradlew'
+    workingDirectory: '$(buildDir)'
+    options: '--stacktrace --no-daemon --scan --info'
+    tasks: 'clean assembleDebug'
+    javaHomeOption: 'Path'
+    jdkDirectory: '/usr/lib/jvm/java-17-openjdk-amd64'
+    publishJUnitResults: false
+  env:
+    CI: 'true'
+  displayName: '🛠️ Run Gradle Build'
+
+# 5. Build scan results
+- script: |
+    if [ -f "build/reports/gradle-scan/gradle-scan.url" ]; then
+      echo "##vso[task.logissue type=error]Build scan available at $(cat build/reports/gradle-scan/gradle-scan.url)"
+    fi
+  workingDirectory: $(buildDir)
+  condition: always()
+  displayName: '📊 Build Scan Report'
