@@ -42,16 +42,3 @@ steps:
   displayName: '🤖 Setup Android SDK'
   env:
     ANDROID_SDK_ROOT: $(ANDROID_SDK_ROOT)
-
-# 4. Build with Gradle
-- task: Gradle@3
-  inputs:
-    gradleWrapperFile: '$(buildDir)/gradlew'
-    workingDirectory: '$(buildDir)'
-    options: '--stacktrace --no-daemon --max-workers=2'
-    tasks: 'clean assembleDebug'
-    javaHomeOption: 'Path'
-    jdkDirectory: '/usr/lib/jvm/java-17-openjdk-amd64'
-  env:
-    ANDROID_SDK_ROOT: $(ANDROID_SDK_ROOT)
-  displayName: '🛠️ Build with Gradle'
