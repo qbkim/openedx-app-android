@@ -9,7 +9,7 @@ variables:
   GRADLE_OPTS: '-Dorg.gradle.jvmargs=-Xmx4096m'
 
 steps:
-# 1. Basic Java setup
+# 1. Java installation
 - script: |
     sudo apt-get update
     sudo apt-get install -y openjdk-17-jdk
@@ -17,31 +17,52 @@ steps:
     echo "##vso[task.setvariable variable=JAVA_HOME]/usr/lib/jvm/java-17-openjdk-amd64"
   displayName: 'Install Java 17'
 
-# 2. Minimal Android setup
+# 2. Android SDK setup
 - script: |
     export ANDROID_HOME=/usr/local/lib/android/sdk
     yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses
     $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platforms;android-34" "build-tools;34.0.0"
   displayName: 'Setup Android SDK'
 
-# 3. Critical Gradle build with full diagnostics
+# 3. Accept Gradle Terms of Service
+- script: |
+    mkdir -p ~/.gradle
+    echo "systemProp.gradle.termsOfServiceUrl=https://gradle.com/terms-of-service" > ~/.gradle/gradle.properties
+    echo "systemProp.gradle.termsOfServiceAgree=yes" >> ~/.gradle/gradle.properties
+  displayName: 'Accept Gradle Terms'
+
+# 4. Verify config file exists
+- script: |
+    echo "Checking config file..."
+    if [ ! -f "$(buildDir)/default_config/config_settings.yaml" ]; then
+      echo "##vso[task.logissue type=error]Missing config file: default_config/config_settings.yaml"
+      exit 1
+    fi
+    echo "Config file exists"
+  displayName: 'Check Config File'
+
+# 5. Run Gradle build
 - task: Gradle@3
   inputs:
     gradleWrapperFile: '$(buildDir)/gradlew'
     workingDirectory: '$(buildDir)'
-    options: '--stacktrace --no-daemon --info --scan'
-    tasks: 'clean assembleDebug --refresh-dependencies'
+    options: '--stacktrace --no-daemon --info'
+    tasks: 'clean assembleDebug'
     javaHomeOption: 'Path'
     jdkDirectory: '/usr/lib/jvm/java-17-openjdk-amd64'
   displayName: 'Run Gradle Build'
 
-# 4. Essential failure analysis
+# 6. Enhanced failure analysis
 - script: |
     echo "=== BUILD FAILURE ANALYSIS ==="
-    # Show last 100 lines of build output
-    tail -n 100 $(buildDir)/app/build/outputs/logs/manifest-merger-debug-report.txt || true
-    # Show dependency tree
-    ./gradlew :app:dependencies --configuration debugRuntimeClasspath || true
+    # Check for common build files
+    find $(buildDir)/app/build -name "*.log" -exec tail -n 50 {} \; || true
+    
+    # Get basic Gradle information
+    ./gradlew --version || true
+    
+    # Check Android components
+    ./gradlew androidDependencies || true
   workingDirectory: $(buildDir)
   condition: failed()
   displayName: 'Diagnose Failure'
