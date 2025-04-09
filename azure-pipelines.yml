@@ -6,59 +6,49 @@ pool:
 
 variables:
   buildDir: '$(Build.SourcesDirectory)'
+  GRADLE_OPTS: '-Dorg.gradle.jvmargs=-Xmx4096m'
 
 steps:
-# 🛠️ Clean Java environment first
+# 1. Clean environment (no code changes needed)
 - script: |
-    sudo apt-get purge -y openjdk-* || true
     sudo rm -rf /usr/lib/jvm || true
-  displayName: 'Clean Java Environment'
+    sudo rm -rf ~/.gradle/caches || true
+  displayName: '🧹 Clean Environment'
 
-# ☕ Install Java 17 explicitly
+# 2. Install Java 17 (matches your build.gradle requirements)
 - script: |
     sudo apt-get update
     sudo apt-get install -y openjdk-17-jdk
     sudo update-alternatives --set java /usr/lib/jvm/java-17-openjdk-amd64/bin/java
-    sudo update-alternatives --set javac /usr/lib/jvm/java-17-openjdk-amd64/bin/javac
     export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
     echo "##vso[task.setvariable variable=JAVA_HOME]$JAVA_HOME"
     java -version
-    javac -version
-  displayName: 'Install Java 17'
+  displayName: '☕ Install Java 17'
 
-# 🔄 Verify Java setup
-- script: |
-    echo "JAVA_HOME: $JAVA_HOME"
-    echo "PATH: $PATH"
-    which java
-    which javac
-  displayName: 'Verify Java Installation'
-
-# 🛠️ Android SDK setup
+# 3. Android SDK setup (no code changes needed)
 - script: |
     export ANDROID_HOME=/opt/hostedtoolcache/AndroidSDK
     echo "##vso[task.setvariable variable=ANDROID_HOME]$ANDROID_HOME"
-    echo "ANDROID_HOME: $ANDROID_HOME"
-    ls -la $ANDROID_HOME/cmdline-tools/latest/bin/
-    $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --list || true
-  displayName: 'Setup Android SDK'
+    yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses
+    $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platforms;android-34" "build-tools;34.0.0"
+  displayName: '🤖 Setup Android SDK'
 
-# 🔧 Gradle build with clean and debug
+# 4. Build with optimized settings (no code changes needed)
 - task: Gradle@3
   inputs:
     gradleWrapperFile: '$(buildDir)/gradlew'
     workingDirectory: '$(buildDir)'
-    options: '--stacktrace --debug --no-daemon'
+    options: '--stacktrace --no-daemon --max-workers=2'
     tasks: 'clean assembleDebug'
     javaHomeOption: 'Path'
     jdkDirectory: '/usr/lib/jvm/java-17-openjdk-amd64'
-    publishJUnitResults: false
-  displayName: 'Build with Gradle'
+  displayName: '🛠️ Build with Gradle'
 
-# 📦 Optional: Upload build artifacts if build succeeds
+# 5. Upload artifacts (optional)
 - task: PublishBuildArtifacts@1
   condition: succeeded()
   inputs:
     PathtoPublish: '$(buildDir)/app/build/outputs/apk/'
     ArtifactName: 'apk'
     publishLocation: 'Container'
+  displayName: '📦 Upload APKs'
