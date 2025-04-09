@@ -6,82 +6,42 @@ pool:
 
 variables:
   buildDir: '$(Build.SourcesDirectory)'
-  GRADLE_OPTS: '-Dorg.gradle.jvmargs=-Xmx4096m -XX:MaxMetaspaceSize=1024m -XX:+HeapDumpOnOutOfMemoryError'
-  ANDROID_SDK_ROOT: '/usr/local/lib/android/sdk'
+  GRADLE_OPTS: '-Dorg.gradle.jvmargs=-Xmx4096m'
 
 steps:
-# 1. Enhanced environment cleaning
+# 1. Basic Java setup
 - script: |
-    echo "=== Deep Clean Environment ==="
-    sudo rm -rf ~/.gradle/
-    sudo rm -rf $(buildDir)/.gradle
-    sudo rm -rf $(buildDir)/build
-    sudo rm -rf /tmp/*
-  displayName: '🧹 Deep Clean Environment'
-
-# 2. Java 17 installation with verification
-- script: |
-    echo "=== Installing Java 17 ==="
-    sudo apt-get update -y
-    sudo apt-get purge -y openjdk-* || true
+    sudo apt-get update
     sudo apt-get install -y openjdk-17-jdk
     sudo update-alternatives --set java /usr/lib/jvm/java-17-openjdk-amd64/bin/java
-    export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
-    echo "##vso[task.setvariable variable=JAVA_HOME]$JAVA_HOME"
-    echo "Java version: $(java -version 2>&1 | head -n 1)"
-  displayName: '☕ Install Java 17'
+    echo "##vso[task.setvariable variable=JAVA_HOME]/usr/lib/jvm/java-17-openjdk-amd64"
+  displayName: 'Install Java 17'
 
-# 3. Android SDK setup with fallback
+# 2. Minimal Android setup
 - script: |
-    echo "=== Setting Up Android SDK ==="
-    export ANDROID_HOME=$ANDROID_SDK_ROOT
-    echo "##vso[task.setvariable variable=ANDROID_HOME]$ANDROID_HOME"
-    
-    # Verify and install cmdline-tools if missing
-    if [ ! -f "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" ]; then
-      echo "Installing cmdline-tools..."
-      mkdir -p $ANDROID_HOME/cmdline-tools/latest
-      wget https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip -O cmdline-tools.zip
-      unzip cmdline-tools.zip -d $ANDROID_HOME/cmdline-tools/latest
-      mv $ANDROID_HOME/cmdline-tools/latest/cmdline-tools/* $ANDROID_HOME/cmdline-tools/latest/
-      rm -rf cmdline-tools.zip
-    fi
-    
-    # Accept licenses with timeout
-    timeout 60 yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
-    
-    # Install platform tools with retry
-    for i in {1..3}; do
-      $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager \
-        "platforms;android-34" \
-        "build-tools;34.0.0" \
-        "platform-tools" \
-        "cmake;3.22.1" && break || sleep 30
-    done
-  displayName: '🤖 Setup Android SDK'
+    export ANDROID_HOME=/usr/local/lib/android/sdk
+    yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses
+    $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platforms;android-34" "build-tools;34.0.0"
+  displayName: 'Setup Android SDK'
 
-# 4. Accept Gradle terms and configure
-- script: |
-    echo "=== Configuring Gradle ==="
-    mkdir -p ~/.gradle
-    echo "org.gradle.parallel=true" > ~/.gradle/gradle.properties
-    echo "org.gradle.caching=true" >> ~/.gradle/gradle.properties
-    echo "org.gradle.daemon=false" >> ~/.gradle/gradle.properties
-    echo "systemProp.gradle.termsOfServiceUrl=https://gradle.com/terms-of-service" >> ~/.gradle/gradle.properties
-    echo "systemProp.gradle.termsOfServiceAgree=yes" >> ~/.gradle/gradle.properties
-  displayName: '⚙️ Configure Gradle'
-
-# 5. Run Gradle build with comprehensive logging
+# 3. Critical Gradle build with full diagnostics
 - task: Gradle@3
   inputs:
     gradleWrapperFile: '$(buildDir)/gradlew'
     workingDirectory: '$(buildDir)'
-    options: '--stacktrace --no-daemon --info --warning-mode=all'
+    options: '--stacktrace --no-daemon --info --scan'
     tasks: 'clean assembleDebug --refresh-dependencies'
     javaHomeOption: 'Path'
     jdkDirectory: '/usr/lib/jvm/java-17-openjdk-amd64'
-    publishJUnitResults: false
-  env:
-    CI: 'true'
-    ANDROID_HOME: $(ANDROID_SDK_ROOT)
-  displayName: '🛠️ Run Gradle Build'
+  displayName: 'Run Gradle Build'
+
+# 4. Essential failure analysis
+- script: |
+    echo "=== BUILD FAILURE ANALYSIS ==="
+    # Show last 100 lines of build output
+    tail -n 100 $(buildDir)/app/build/outputs/logs/manifest-merger-debug-report.txt || true
+    # Show dependency tree
+    ./gradlew :app:dependencies --configuration debugRuntimeClasspath || true
+  workingDirectory: $(buildDir)
+  condition: failed()
+  displayName: 'Diagnose Failure'
